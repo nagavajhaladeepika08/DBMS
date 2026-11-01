@@ -1,0 +1,92 @@
+Ex.No:4 Create database to set various constraints
+
+Aim
+To create tables and demonstrate the use of various SQL constraints — PRIMARY KEY, FOREIGN KEY, UNIQUE, NOT NULL, CHECK, and DEFAULT — including adding and removing constraints on an existing table.
+
+Theory
+Constraints are rules enforced on the data columns of a table to maintain the accuracy, validity, and integrity of the data. They can be specified when a table is created (using CREATE TABLE) or added later (using ALTER TABLE).
+Constraint	Purpose
+NOT NULL	Ensures a column cannot have a NULL value
+UNIQUE	Ensures all values in a column are different
+PRIMARY KEY	Uniquely identifies each record (NOT NULL + UNIQUE)
+FOREIGN KEY	Links two tables; ensures referential integrity
+CHECK	Ensures values satisfy a specific condition
+DEFAULT	Sets a default value when none is specified
+
+Procedure
+Step 1: Create the database and tables
+Create a database named CollegeDB with two related tables, Department and Student, applying PRIMARY KEY, NOT NULL, UNIQUE, CHECK, DEFAULT, and FOREIGN KEY constraints.
+
+1. Create Database
+CREATE DATABASE CollegeDB;
+USE CollegeDB;
+
+2. Table with NOT NULL, UNIQUE, PRIMARY KEY, CHECK, DEFAULT constraints
+CREATE TABLE Department ( dept_id     INT PRIMARY KEY,  dept_name VARCHAR(50) NOT NULL UNIQUE);
+
+3.CREATE TABLE Student (  roll_no     INT PRIMARY KEY, name        VARCHAR(50) NOT NULL, age         INT CHECK (age >= 17 AND age <= 30), email       VARCHAR(50) UNIQUE, gender      VARCHAR(10) DEFAULT 'Not Specified', dept_id     INT,
+    FOREIGN KEY (dept_id) REFERENCES Department(dept_id));
+
+Step 2: Insert valid records
+Insert sample records into both tables. Observe that when the gender column is omitted for roll_no 102, the DEFAULT value 'Not Specified' is automatically applied.
+
+3. Insert sample data into Department
+INSERT INTO Department VALUES (1, 'Computer Science');
+INSERT INTO Department VALUES (2, 'Electronics');
+4. Insert valid records into Student
+INSERT INTO Student (roll_no, name, age, email, gender, dept_id)
+VALUES (101, 'Arun', 20, 'arun@email.com', 'Male', 1);
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (102, 'Priya', 21, 'priya@email.com', 2);   
+
+
+Step 3: Attempt constraint violations
+Execute the following statements one at a time. Each is expected to fail, since it violates a constraint defined on the Student table. Record the exact error message returned by your DBMS for each case.
+
+(a) NOT NULL violation
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (103, NULL, 22, 'test1@email.com', 1);
+
+(b) UNIQUE violation (duplicate email)
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (104, 'Kumar', 23, 'arun@email.com', 1);
+
+ (c) PRIMARY KEY violation (duplicate roll_no)
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (101, 'Ravi', 22, 'ravi@email.com', 1);
+
+(d) CHECK violation (invalid age)
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (105, 'Sita', 35, 'sita@email.com', 1);
+
+(e) FOREIGN KEY violation (non-existent dept_id)
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (106, 'Meena', 20, 'meena@email.com', 9);
+
+Step 4: Add and drop a constraint on an existing table
+Use ALTER TABLE to add a new CHECK constraint after table creation, and then remove it.
+ 6. Adding a constraint to an existing table
+ALTER TABLE Student
+ADD CONSTRAINT chk_name CHECK (LENGTH(name) >= 3);
+
+ 7. Dropping a constraint
+ALTER TABLE Student
+DROP CONSTRAINT chk_name;   -- syntax may vary: use DROP CHECK chk_name in MySQL
+
+ 8. Viewing table structure and constraints 
+DESC Student;
+
+Expected Output
+Records with roll_no 101 and 102 insert successfully. Record 102 receives gender = 'Not Specified' from the DEFAULT constraint. Each violation statement in Step 3 raises an error similar to the following:
+Verification of constraints:
+Violation	Sample Error Message
+NOT NULL violation	Column 'name' cannot be null
+UNIQUE violation	Duplicate entry 'arun@email.com' for key 'email'
+PRIMARY KEY violation	Duplicate entry '101' for key 'PRIMARY'
+CHECK violation	Check constraint 'age' is violated
+FOREIGN KEY violation	Cannot add or update a child row: a foreign key constraint fails
+
+Result
+The various SQL constraints — NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT — were successfully implemented, tested, and verified.
+
+
