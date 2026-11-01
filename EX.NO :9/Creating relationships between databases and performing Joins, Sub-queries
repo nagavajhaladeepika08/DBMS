@@ -1,0 +1,273 @@
+EX.NO :9 Creating relationships between databases and performing Joins, Sub-queries
+
+1. Aim
+To create related tables in a relational database using primary and foreign keys, and to retrieve related data using different types of JOIN operations and sub-queries.
+2. Objectives
+Create tables with appropriate primary-key and foreign-key constraints.
+Understand one-to-many relationships between relational tables.
+Perform INNER JOIN, LEFT JOIN and RIGHT JOIN operations.
+Use table aliases and join conditions to retrieve related records.
+Write single-row, multi-row and correlated sub-queries.
+Compare JOIN-based and sub-query-based approaches for retrieving information.
+3. Software / Requirements
+MySQL 8.x / MySQL Workbench (or any compatible SQL environment)
+A computer with DBMS software installed
+Basic knowledge of SQL commands: CREATE, INSERT, SELECT and WHERE
+4. Theory
+4.1 Relationship Between Tables
+A relationship connects two or more tables through common attributes. A primary key uniquely identifies each row in a table, while a foreign key refers to a primary key in another table. This maintains referential integrity.
+Example relationship used in this experiment:
+Table	Key	Description
+Department	dept_id (PK)	Uniquely identifies a department
+Student	student_id (PK), dept_id (FK)	dept_id refers to Department.dept_id
+Course	course_id (PK), dept_id (FK)	dept_id refers to Department.dept_id
+Enrollment	enroll_id (PK), student_id (FK), course_id (FK)	Connects students and courses
+
+4.2 Types of Relationships
+One-to-One (1:1): One row in one table is related to one row in another table.
+One-to-Many (1:N): One department can have many students.
+Many-to-Many (M:N): Many students can register for many courses. This is implemented using a bridge/junction table such as Enrollment.
+4.3 JOIN
+A JOIN combines rows from two or more tables based on a related column. The most common joins used in this experiment are:
+JOIN	Purpose
+INNER JOIN	Returns only rows having matching values in both tables.
+LEFT JOIN	Returns all rows from the left table and matching rows from the right table.
+RIGHT JOIN	Returns all rows from the right table and matching rows from the left table.
+SELF JOIN	Joins a table with itself using aliases.
+
+4.4 Sub-Query
+A sub-query is a query written inside another SQL query. It can be used in WHERE, FROM or SELECT clauses. Sub-queries may return a single value, multiple values, or a result set that is treated as a temporary table.
+Single-row sub-query: returns one value; commonly used with =, >, <, >= or <=.
+Multi-row sub-query: returns multiple values; commonly used with IN, ANY or ALL.
+Correlated sub-query: depends on a value from the outer query and is evaluated in relation to each outer row.
+5. Database and Table Creation
+CREATE DATABASE CollegeDB;
+USE CollegeDB;
+
+CREATE TABLE Department (
+    dept_id INT PRIMARY KEY,
+    dept_name VARCHAR(50) NOT NULL,
+    location VARCHAR(50)
+);
+
+CREATE TABLE Student (
+    student_id INT PRIMARY KEY,
+    student_name VARCHAR(50) NOT NULL,
+    dept_id INT,
+    cgpa DECIMAL(3,2),
+    FOREIGN KEY (dept_id) REFERENCES Department(dept_id)
+);
+
+CREATE TABLE Course (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(60) NOT NULL,
+    dept_id INT,
+    credits INT,
+    FOREIGN KEY (dept_id) REFERENCES Department(dept_id)
+);
+
+CREATE TABLE Enrollment (
+    enroll_id INT PRIMARY KEY,
+    student_id INT,
+    course_id INT,
+    semester INT,
+    marks INT,
+    FOREIGN KEY (student_id) REFERENCES Student(student_id),
+    FOREIGN KEY (course_id) REFERENCES Course(course_id)
+);
+6. Insert Sample Records
+INSERT INTO Department VALUES
+(10, 'CSE', 'Block A'),
+(20, 'ECE', 'Block B'),
+(30, 'IT',  'Block C'),
+(40, 'MECH','Block D');
+
+INSERT INTO Student VALUES
+(101, 'Anu',   10, 8.70),
+(102, 'Bala',  10, 7.90),
+(103, 'Charan',20, 8.20),
+(104, 'Divya', 30, 9.10),
+(105, 'Esha',  NULL, 7.50);
+
+INSERT INTO Course VALUES
+(501, 'DBMS',       10, 4),
+(502, 'Data Structures', 10, 4),
+(503, 'Digital Systems', 20, 3),
+(504, 'Web Technology', 30, 3);
+
+INSERT INTO Enrollment VALUES
+(1, 101, 501, 5, 88),
+(2, 101, 502, 5, 91),
+(3, 102, 501, 5, 76),
+(4, 103, 503, 5, 84),
+(5, 104, 504, 5, 95);
+7. Procedure
+1. Open MySQL Workbench or the available SQL environment.
+2. Create the CollegeDB database and select it using USE CollegeDB.
+3. Create Department, Student, Course and Enrollment tables.
+4. Observe the primary-key and foreign-key relationships.
+5. Insert the sample records.
+6. Execute the JOIN queries given below and verify the output.
+7. Execute the sub-query examples and compare their results with JOIN queries.
+8. Record the output and answer the review questions.
+8. SQL Queries – Relationships and JOINs
+8.1 Display students with their department names
+SELECT s.student_id, s.student_name, d.dept_name
+FROM Student s
+INNER JOIN Department d
+    ON s.dept_id = d.dept_id;
+Expected result:
+student_id	student_name	dept_name
+101	Anu	CSE
+102	Bala	CSE
+103	Charan	ECE
+104	Divya	IT
+
+8.2 Display all students, including students without a department
+SELECT s.student_id, s.student_name, d.dept_name
+FROM Student s
+LEFT JOIN Department d
+    ON s.dept_id = d.dept_id;
+Expected result:
+student_id	student_name	dept_name
+101	Anu	CSE
+102	Bala	CSE
+103	Charan	ECE
+104	Divya	IT
+105	Esha	NULL
+
+8.3 Display all departments and their students
+SELECT d.dept_id, d.dept_name, s.student_name
+FROM Department d
+LEFT JOIN Student s
+    ON d.dept_id = s.dept_id
+ORDER BY d.dept_id;
+Expected result:
+dept_id	dept_name	student_name
+10	CSE	Anu
+10	CSE	Bala
+20	ECE	Charan
+30	IT	Divya
+40	MECH	NULL
+
+8.4 Display students and the courses they enrolled in
+SELECT s.student_name, c.course_name, e.marks
+FROM Enrollment e
+INNER JOIN Student s ON e.student_id = s.student_id
+INNER JOIN Course c ON e.course_id = c.course_id
+ORDER BY s.student_id;
+Expected result:
+student_name	course_name	marks
+Anu	DBMS	88
+Anu	Data Structures	91
+Bala	DBMS	76
+Charan	Digital Systems	84
+Divya	Web Technology	95
+
+8.5 Display students who scored more than 80
+SELECT s.student_name, c.course_name, e.marks
+FROM Enrollment e
+JOIN Student s ON e.student_id = s.student_id
+JOIN Course c ON e.course_id = c.course_id
+WHERE e.marks > 80;
+Expected result:
+student_name	course_name	marks
+Anu	DBMS	88
+Anu	Data Structures	91
+Charan	Digital Systems	84
+Divya	Web Technology	95
+
+8.6 RIGHT JOIN example
+SELECT d.dept_name, s.student_name
+FROM Student s
+RIGHT JOIN Department d
+    ON s.dept_id = d.dept_id
+ORDER BY d.dept_id;
+Expected result:
+dept_name	student_name
+CSE	Anu
+CSE	Bala
+ECE	Charan
+IT	Divya
+MECH	NULL
+
+9. SQL Queries – Sub-Queries
+9.1 Students with CGPA greater than the average CGPA
+SELECT student_id, student_name, cgpa
+FROM Student
+WHERE cgpa > (SELECT AVG(cgpa) FROM Student);
+Expected result:
+student_id	student_name	cgpa
+101	Anu	8.70
+103	Charan	8.20
+104	Divya	9.10
+
+9.2 Students belonging to the CSE department using a sub-query
+SELECT student_id, student_name
+FROM Student
+WHERE dept_id = (
+    SELECT dept_id
+    FROM Department
+    WHERE dept_name = 'CSE'
+);
+Expected result:
+student_id	student_name
+101	Anu
+102	Bala
+
+9.3 Students enrolled in the DBMS course
+SELECT student_id, student_name
+FROM Student
+WHERE student_id IN (
+    SELECT student_id
+    FROM Enrollment
+    WHERE course_id = (
+        SELECT course_id
+        FROM Course
+        WHERE course_name = 'DBMS'
+    )
+);
+Expected result:
+student_id	student_name
+101	Anu
+102	Bala
+
+9.4 Courses whose credits are greater than at least one course in the ECE department
+SELECT course_id, course_name, credits
+FROM Course
+WHERE credits > ANY (
+    SELECT credits
+    FROM Course
+    WHERE dept_id = 20
+);
+Expected result:
+course_id	course_name	credits
+501	DBMS	4
+502	Data Structures	4
+
+9.5 Correlated sub-query: students whose CGPA is above their department average
+SELECT s.student_id, s.student_name, s.dept_id, s.cgpa
+FROM Student s
+WHERE s.cgpa > (
+    SELECT AVG(s2.cgpa)
+    FROM Student s2
+    WHERE s2.dept_id = s.dept_id
+);
+Expected result:
+student_id	student_name	dept_id	cgpa
+101	Anu	10	8.70
+
+9.6 Find the student(s) with the highest CGPA
+SELECT student_id, student_name, cgpa
+FROM Student
+WHERE cgpa = (SELECT MAX(cgpa) FROM Student);
+Expected result:
+student_id	student_name	cgpa
+104	Divya	9.10
+
+10. JOIN vs Sub-Query – Quick Comparison
+Feature	JOIN	Sub-Query
+Basic purpose	Combines related rows from tables	Uses result of one query inside another
+Typical use	Retrieving related columns	Filtering based on aggregate or another query
+Example	Student JOIN Department	CGPA > AVG(CGPA)
+Readability	Often clear for relationship-based retrieval	Useful when logic naturally has nested steps
