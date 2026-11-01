@@ -1,0 +1,209 @@
+
+Ex.No:5 Queries Using ANY, ALL, IN, EXISTS, NOT EXISTS, UNION, INTERSECT and Constraints
+
+Aim:
+To write and execute SQL queries using the ANY, ALL, IN, EXISTS, and NOT EXISTS operators, the set operations UNION and INTERSECT, and to reinforce the use of integrity constraints (PRIMARY KEY, FOREIGN KEY, UNIQUE, NOT NULL, CHECK, DEFAULT) on a related set of tables.
+
+Theory:
+Operator / Clause	Purpose
+IN	Checks whether a value matches any value in a list or subquery result
+ANY / SOME	Compares a value to each value returned by a subquery; true if the comparison holds for at least one row
+ALL	Compares a value to each value returned by a subquery; true only if the comparison holds for every row
+EXISTS	Returns true if the subquery returns at least one row
+NOT EXISTS	Returns true if the subquery returns no rows
+UNION	Combines results of two queries, removing duplicate rows
+UNION ALL	Combines results of two queries, keeping duplicate rows
+INTERSECT	Returns only rows common to both queries
+EXCEPT / MINUS	Returns rows from the first query that do not appear in the second
+
+Note: UNION, UNION ALL, INTERSECT, and EXCEPT require every participating SELECT to return the same number of columns with compatible data types.
+Database Schema Used
+This lab extends the CollegeDB schema with Course and Enrollment tables so that meaningful subqueries and set operations can be written across related data.
+
+ Reuse / extend the CollegeDB schema from the constraints lab
+CREATE DATABASE IF NOT EXISTS CollegeDB;
+USE CollegeDB;
+
+CREATE TABLE Department ( dept_id     INT PRIMARY KEY, dept_name   VARCHAR(50) NOT NULL UNIQUE);
+
+CREATE TABLE Student ( roll_no     INT PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL,
+    age         INT CHECK (age >= 17 AND age <= 30),
+    email       VARCHAR(50) UNIQUE,
+    gender      VARCHAR(10) DEFAULT 'Not Specified',
+    dept_id     INT,
+    FOREIGN KEY (dept_id) REFERENCES Department(dept_id)
+);
+
+
+CREATE TABLE Course ( course_id   INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    credits     INT CHECK (credits BETWEEN 1 AND 6),
+    dept_id     INT,
+    FOREIGN KEY (dept_id) REFERENCES Department(dept_id)
+);
+
+CREATE TABLE Enrollment ( roll_no     INT, course_id   INT,
+    marks       INT CHECK (marks BETWEEN 0 AND 100),
+    PRIMARY KEY (roll_no, course_id),
+    FOREIGN KEY (roll_no) REFERENCES Student(roll_no),
+    FOREIGN KEY (course_id) REFERENCES Course(course_id)
+);
+
+Sample data
+
+INSERT INTO Department VALUES
+(1, 'Computer Science'), (2, 'Electronics'), (3, 'Mechanical');
+
+INSERT INTO Student (roll_no, name, age, email, gender, dept_id) VALUES
+(101, 'Arun',  20, 'arun@email.com',  'Male',   1),
+(102, 'Priya', 21, 'priya@email.com', 'Female', 2),
+(103, 'Kumar', 22, 'kumar@email.com', 'Male',   1),
+(104, 'Sita',  19, 'sita@email.com',  'Female', 3),
+(105, 'Meena', 23, 'meena@email.com', 'Female', 2);
+
+INSERT INTO Course (course_id, course_name, credits, dept_id) VALUES
+(1, 'Data Structures', 4, 1),
+(2, 'Digital Circuits', 3, 2),
+(3, 'Thermodynamics',  4, 3),
+(4, 'DBMS',   4, 1);
+
+INSERT INTO Enrollment (roll_no, course_id, marks) VALUES
+(101, 1, 85), (101, 4, 78),
+(102, 2, 60), (102, 4, 55),
+(103, 1, 90), (103, 4, 88),
+(104, 3, 70),
+(105, 2, 45);
+Procedure and Queries
+1. IN
+Use IN to test membership against a list produced by a subquery.
+ Students who belong to the 'Computer Science' or 'Mechanical' departments
+SELECT name, dept_id
+FROM Student
+WHERE dept_id IN (
+    SELECT dept_id FROM Department
+    WHERE dept_name IN ('Computer Science', 'Mechanical')
+);
+
+ Students who are NOT enrolled in course_id 4 (DBMS)
+SELECT name
+FROM Student
+WHERE roll_no NOT IN (
+    SELECT roll_no FROM Enrollment WHERE course_id = 4
+);
+2. ANY / SOME
+ANY returns true if the comparison is true for at least one value returned by the subquery.
+ Students who scored more marks than ANY (i.e. at least one) mark in course 2
+SELECT DISTINCT s.name, e.marks
+FROM Student s
+JOIN Enrollment e ON s.roll_no = e.roll_no
+WHERE e.marks > ANY (
+    SELECT marks FROM Enrollment WHERE course_id = 2);
+
+ Departments that offer a course with credits equal to ANY course's credits in dept 1
+SELECT DISTINCT dept_id
+FROM Course
+WHERE credits = ANY (
+    SELECT credits FROM Course WHERE dept_id = 1
+);
+3. ALL
+ALL returns true only if the comparison is true for every value returned by the subquery.
+ Students who scored more marks than ALL students in course 2
+ (i.e. more than the maximum mark scored in course 2)
+SELECT DISTINCT s.name, e.marks
+FROM Student s
+JOIN Enrollment e ON s.roll_no = e.roll_no
+WHERE e.marks > ALL (
+    SELECT marks FROM Enrollment WHERE course_id = 2
+);
+
+ Courses with credits greater than or equal to ALL courses in the Electronics department
+SELECT course_name, credits
+FROM Course
+WHERE credits >= ALL (
+    SELECT credits FROM Course
+    WHERE dept_id = (SELECT dept_id FROM Department WHERE dept_name = 'Electronics')
+);
+4. EXISTS and NOT EXISTS
+EXISTS checks only for the presence of rows in the subquery result, which can be more efficient than IN for correlated subqueries.
+ Departments that have at least one student (EXISTS)
+SELECT dept_name
+FROM Department d
+WHERE EXISTS (
+    SELECT 1 FROM Student s WHERE s.dept_id = d.dept_id
+);
+
+ Students who are NOT enrolled in any course (NOT EXISTS)
+SELECT name
+FROM Student s
+WHERE NOT EXISTS (
+    SELECT 1 FROM Enrollment e WHERE e.roll_no = s.roll_no
+);
+
+ Departments that offer NO courses at all (NOT EXISTS)
+SELECT dept_name
+FROM Department d
+WHERE NOT EXISTS (
+    SELECT 1 FROM Course c WHERE c.dept_id = d.dept_id
+);
+5. UNION and UNION ALL
+ UNION: all distinct roll numbers of students who scored above 80
+ in DBMS (course 4) OR above 80 in Data Structures (course 1)
+SELECT roll_no FROM Enrollment WHERE course_id = 4 AND marks > 80
+UNION
+SELECT roll_no FROM Enrollment WHERE course_id = 1 AND marks > 80;
+
+UNION ALL keeps duplicates (a student appearing in both result sets is listed twice)
+SELECT roll_no FROM Enrollment WHERE course_id = 4 AND marks > 80
+UNION ALL
+SELECT roll_no FROM Enrollment WHERE course_id = 1 AND marks > 80;
+6. INTERSECT
+ INTERSECT: roll numbers common to BOTH sets
+students enrolled in course 1 AND also enrolled in course 4
+SELECT roll_no FROM Enrollment WHERE course_id = 1
+INTERSECT
+SELECT roll_no FROM Enrollment WHERE course_id = 4;
+
+ Note: MySQL (< 8.0.31) has no INTERSECT keyword.
+ Equivalent using IN / a join:
+SELECT roll_no FROM Enrollment WHERE course_id = 1
+AND roll_no IN (SELECT roll_no FROM Enrollment WHERE course_id = 4);
+7. EXCEPT / MINUS (bonus)
+EXCEPT / MINUS: roll numbers in course 1 but NOT in course 4
+SELECT roll_no FROM Enrollment WHERE course_id = 1
+EXCEPT
+SELECT roll_no FROM Enrollment WHERE course_id = 4;
+
+MySQL equivalent (no EXCEPT/MINUS keyword):
+SELECT roll_no FROM Enrollment WHERE course_id = 1
+AND roll_no NOT IN (SELECT roll_no FROM Enrollment WHERE course_id = 4);
+8. Constraints recap
+Re-verify that the constraints defined in the schema are enforced. Each statement below is expected to raise a constraint-violation error.
+Constraint violation demonstrations (recap)
+
+NOT NULL violation
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (106, NULL, 22, 'test1@email.com', 1);
+
+UNIQUE violation
+INSERT INTO Student (roll_no, name, age, email, dept_id)
+VALUES (107, 'Ravi', 23, 'arun@email.com', 1);
+
+CHECK violation
+INSERT INTO Enrollment (roll_no, course_id, marks)
+VALUES (101, 2, 150);
+
+ FOREIGN KEY violation
+INSERT INTO Enrollment (roll_no, course_id, marks)
+VALUES (999, 1, 70);
+Expected Output (sample)
+Query	Expected Result
+IN (dept filter)	Arun, Kumar (CS), Sita (Mechanical)
+ANY (marks > ANY course 2)	Any student whose marks exceed at least the lowest mark in course 2 (45)
+ALL (marks > ALL course 2)	Only students scoring above the highest mark in course 2 (60)
+EXISTS (dept has students)	Computer Science, Electronics, Mechanical
+NOT EXISTS (no enrollment)	Empty set, since every student has at least one enrollment
+UNION	Distinct roll numbers scoring > 80 in course 1 or course 4
+INTERSECT	Roll numbers 101 and 103 (enrolled in both course 1 and 4)
+Result
+Queries using IN, ANY, ALL, EXISTS, NOT EXISTS, UNION, UNION ALL, and INTERSECT were successfully written and executed, and the integrity constraints on the schema were verified.
