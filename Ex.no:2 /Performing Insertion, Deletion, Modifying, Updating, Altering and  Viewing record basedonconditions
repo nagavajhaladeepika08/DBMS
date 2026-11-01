@@ -1,0 +1,123 @@
+Ex.no:2 Performing Insertion, Deletion, Modifying, Updating, Altering and  Viewing records based on conditions
+1.A company wants to manage its Employee table.
+1.Insert 3 new employees of your choice.
+2.View all employees in the 'Finance' department earning more than 40,000.
+3.Give every employee in 'IT' a 10% raise.
+4.Delete any employee who joined before 2020.
+5.Add a new column Phone (VARCHAR(15)) to the table.
+6.Rename the Department column to Dept.
+Aim:
+To write and execute SQL queries to perform Insertion, Deletion, Modification, Updating, Altering, and Viewing of records based on specified conditions using Data Manipulation Language (DML) and Data Definition Language (DDL) commands.
+SAMPLE TABLE:
+CREATE TABLE Employee (EmpID INT PRIMARY KEY, Name VARCHAR(50), Department VARCHAR(30), Salary DECIMAL(10,2), JoinDate DATE );
+1. Insertion (INSERT) — Adding New Records
+Insert a single record:
+
+INSERT INTO Employee (EmpID, Name, Department, Salary, JoinDate) VALUES (101, 'Anjali Sharma', 'IT', 45000.00, '2023-06-15');
+
+Insert multiple records at once:
+
+INSERT INTO Employee (EmpID, Name, Department, Salary, JoinDate) VALUES (102, 'Ravi Kumar', 'HR', 38000.00, '2022-03-10'), (103, 'Priya Singh', 'Finance', 52000.00, '2021-11-01'), (104, 'Karthik Iyer', 'IT', 47000.00, '2023-01-20');
+
+2. Viewing Records Based on Conditions (SELECT ... WHERE)
+
+View all records:
+
+SELECT * FROM Employee;
+
+View records matching a condition:
+
+SELECT * FROM Employee WHERE Department = 'IT';
+
+
+
+View records with a numeric condition:
+SELECT Name, Salary FROM Employee
+WHERE Salary > 40000;
+
+View records with multiple conditions (AND / OR):
+
+SELECT * FROM Employee WHERE Department = 'IT' AND Salary >= 45000;
+
+View records using BETWEEN, IN, and LIKE:
+
+SELECT * FROM Employee WHERE Salary BETWEEN 40000 AND 50000; 
+
+SELECT * FROM Employee WHERE Department IN ('IT', 'Finance'); 
+
+SELECT * FROM Employee WHERE Name LIKE 'A%';
+
+Sort the filtered results:
+
+SELECT * FROM Employee WHERE Department = 'IT' ORDER BY Salary DESC;
+
+3. Updating / Modifying Records (UPDATE)
+Update a single column based on a condition:
+UPDATE Employee
+SET Salary = 48000.00
+WHERE EmpID = 101;
+
+Update multiple columns at once:
+UPDATE Employee
+SET Salary = Salary + 2000, Department = 'Systems'
+WHERE Department = 'IT';
+
+4. Deletion (DELETE) — Removing Records
+Delete a specific record:
+DELETE FROM Employee
+WHERE EmpID = 102;
+
+5. Delete records matching a condition:
+DELETE FROM Employee
+WHERE Salary < 40000;
+6. Delete all records but keep the table structure:
+
+DELETE FROM Employee; 
+TRUNCATE TABLE Employee;
+
+7. Altering Table Structure (ALTER)
+
+Add a new column:
+
+ALTER TABLE Employee ADD Email VARCHAR(100);
+
+8. Modify an existing column's data type/size:
+ALTER TABLE Employee
+MODIFY COLUMN Name VARCHAR(80);
+
+ALTER TABLE Employee
+ALTER COLUMN Name VARCHAR(80);
+
+9. Rename a column:
+
+ALTER TABLE Employee RENAME COLUMN Email TO ContactEmail;
+
+
+10. Drop a column:
+
+ALTER TABLE Employee DROP COLUMN ContactEmail;
+
+11.Rename the entire table:
+
+ALTER TABLE Employee RENAME TO Staff;
+output 
+EmpID	Name	Department	Salary	JoinDate
+101	Anjali Sharma	IT	45000	2023-06-15
+102	Ravi Kumar	HR	38000	2022-03-10
+103	Priya Singh	Finance	52000	2021-11-01
+104	Karthik Iyer	IT	47000	2023-01-20
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
