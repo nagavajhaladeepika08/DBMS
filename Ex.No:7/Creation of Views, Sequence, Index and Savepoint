@@ -1,0 +1,102 @@
+Ex.No:7 Creation of Views, Sequence, Index and Savepoint
+
+Aim
+To study and execute SQL commands for creating and using Views, Sequences, Indexes, and Savepoints in a relational database.
+Objectives
+Create a View to display selected data from one or more tables.
+Create and use a Sequence to generate unique numeric values automatically.
+Create an Index to improve the speed of data retrieval.
+Use SAVEPOINT and ROLLBACK TO SAVEPOINT to control transactions.
+Table Creation
+CREATE TABLE STUDENT (
+    ROLLNO NUMBER(5) PRIMARY KEY,
+    NAME VARCHAR2(30),
+    DEPARTMENT VARCHAR2(20),
+    MARKS NUMBER(3)
+);
+ Insert Sample Records
+INSERT INTO STUDENT VALUES (101, 'ARUN', 'CSE', 85);
+INSERT INTO STUDENT VALUES (102, 'PRIYA', 'ECE', 90);
+INSERT INTO STUDENT VALUES (103, 'KUMAR', 'CSE', 78);
+INSERT INTO STUDENT VALUES (104, 'DIVYA', 'IT', 88);
+INSERT INTO STUDENT VALUES (105, 'RAHUL', 'CSE', 92);
+
+COMMIT;
+Sample table contents:
+ROLLNO	NAME	DEPARTMENT	MARKS
+101	ARUN	CSE	85
+102	PRIYA	ECE	90
+103	KUMAR	CSE	78
+104	DIVYA	IT	88
+105	RAHUL	CSE	92
+Creation of View
+A View is a virtual table based on the result of a SELECT query. It does not normally store a separate copy of the table data.
+CREATE VIEW CSE_STUDENTS AS
+SELECT ROLLNO, NAME, MARKS
+FROM STUDENT
+WHERE DEPARTMENT = 'CSE';
+To display the View:
+SELECT * FROM CSE_STUDENTS;
+Expected Output:
+ROLLNO	NAME	MARKS
+101	ARUN	85
+103	KUMAR	78
+105	RAHUL	92
+To remove the View:
+DROP VIEW CSE_STUDENTS;
+Creation of Sequence
+A Sequence is a database object that generates a series of unique numeric values. It is useful for generating primary-key values.
+CREATE SEQUENCE STUDENT_SEQ
+START WITH 106
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;
+Generate sequence values:
+SELECT STUDENT_SEQ.NEXTVAL FROM DUAL;
+SELECT STUDENT_SEQ.NEXTVAL FROM DUAL;
+Expected Output:
+NEXTVAL
+106
+107
+Use the sequence while inserting a new student:
+INSERT INTO STUDENT
+VALUES (STUDENT_SEQ.NEXTVAL, 'SNEHA', 'CSE', 89);
+
+COMMIT;
+
+SELECT * FROM STUDENT;
+To remove the Sequence:
+DROP SEQUENCE STUDENT_SEQ;
+Creation of Index
+An Index is a database object used to speed up data retrieval. It is especially useful when a column is frequently used in search conditions.
+CREATE INDEX IDX_STUDENT_NAME
+ON STUDENT(NAME);
+Query using the indexed column:
+SELECT * FROM STUDENT WHERE NAME = 'ARUN';
+The query returns the record for ARUN. The database optimizer may use the index to improve retrieval performance.
+To remove the Index:
+DROP INDEX IDX_STUDENT_NAME;
+SAVEPOINT and ROLLBACK
+SAVEPOINT marks a point within a transaction. ROLLBACK TO SAVEPOINT undoes changes made after that savepoint while keeping earlier changes in the current transaction.
+Step 1 – Insert a record:
+INSERT INTO STUDENT VALUES (106, 'MOHAN', 'IT', 80);
+SAVEPOINT SP1;
+Step 2 – Insert another record:
+INSERT INTO STUDENT VALUES (107, 'LATHA', 'ECE', 87);
+
+SELECT * FROM STUDENT;
+At this point, both MOHAN and LATHA are present in the current transaction.
+Step 3 – Roll back to SP1:
+ROLLBACK TO SP1;
+The insertion of LATHA is undone because it occurred after SP1. The insertion of MOHAN remains.
+Step 4 – Make the remaining transaction permanent:
+COMMIT;
+Expected result after ROLLBACK TO SP1: MOHAN remains, while LATHA is removed.
+Difference Between ROLLBACK and ROLLBACK TO SAVEPOINT
+Command	Meaning	Effect
+ROLLBACK	Cancels the current transaction	All uncommitted changes are undone
+ROLLBACK TO SP1	Rolls back only to a specified savepoint	Changes after SP1 are undone
+COMMIT	Makes transaction permanent	Changes are saved permanently
+
+Result
+Thus, the SQL commands for creating and using a View, Sequence, Index, and Savepoint were successfully executed and verified.
