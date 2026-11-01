@@ -1,0 +1,120 @@
+Ex.No:6 Queries Using Aggregate Functions, GROUP BY and HAVING Clause
+
+Objective:
+
+To understand and implement SQL aggregate functions (COUNT, SUM, AVG, MIN, MAX) along with the GROUP BY and HAVING clauses to summarize, group, and filter grouped data from database tables
+Aggregate Functions
+Aggregate functions perform a calculation on a set of values and return a single summary value. They are commonly used with the GROUP BY clause but can also be used on an entire table.
+Function	Description
+COUNT()	Returns the number of rows (or non-null values)
+SUM()	Returns the total sum of a numeric column
+AVG()	Returns the average value of a numeric column
+MIN()	Returns the smallest value in a column
+MAX()	Returns the largest value in a column
+
+GROUP BY Clause
+The GROUP BY clause groups rows that have the same values in specified columns into summary rows. It is typically used with aggregate functions to produce one result per group instead of one result per row.
+Syntax:
+SELECT column1, AGG_FUNCTION(column2)
+FROM table_name
+WHERE condition
+GROUP BY column1;
+
+HAVING Clause
+The HAVING clause filters groups created by GROUP BY based on a condition applied to an aggregate function. Unlike WHERE, which filters individual rows before grouping, HAVING filters groups after aggregation.
+Syntax:
+SELECT column1, AGG_FUNCTION(column2)
+FROM table_name
+WHERE condition
+GROUP BY column1
+HAVING aggregate_condition
+ORDER BY column1;
+
+ WHERE vs HAVING
+WHERE	HAVING
+Filters rows before grouping	Filters groups after aggregation
+Cannot use aggregate functions	Can use aggregate functions
+Applied to individual records	Applied to grouped records
+Executes before GROUP BY	Executes after GROUP BY
+
+Logical Order of Execution
+FROM  →  WHERE  →  GROUP BY  →  HAVING  →  SELECT  →  ORDER BY
+
+Sample Database
+
+Create the following table for practice.
+CREATE TABLE Employee (
+    EmpID       INT PRIMARY KEY,
+    EmpName     VARCHAR(50),
+    Department  VARCHAR(30),
+    Designation VARCHAR(30),
+    Salary      DECIMAL(10,2),
+    City        VARCHAR(30),
+    DOJ         DATE
+);
+ 
+INSERT INTO Employee VALUES
+(1, 'Aarav Sharma',   'IT',      'Developer',      55000, 'Chennai',   '2021-03-15'),
+(2, 'Priya Nair',     'IT',      'Team Lead',       75000, 'Chennai',   '2019-06-10'),
+(3, 'Rohit Verma',    'HR',      'Executive',       35000, 'Bangalore', '2022-01-20'),
+(4, 'Sneha Iyer',     'HR',      'Manager',         65000, 'Bangalore', '2018-11-05'),
+(5, 'Karthik Raj',    'Finance', 'Analyst',         45000, 'Chennai',   '2020-07-01'),
+(6, 'Divya Menon',    'Finance', 'Manager',         70000, 'Mumbai',    '2017-09-25'),
+(7, 'Arjun Das',      'IT',      'Developer',       58000, 'Mumbai',    '2021-12-12'),
+(8, 'Fatima Khan',    'HR',      'Executive',       36000, 'Chennai',   '2023-02-18'),
+(9, 'Vikram Singh',   'Finance', 'Analyst',         47000, 'Bangalore', '2022-05-30'),
+(10,'Meera Pillai',   'IT',      'Developer',       59000, 'Bangalore', '2020-08-14');
+
+
+ Sample Queries
+1 Count total number of employees
+SELECT COUNT(*) AS TotalEmployees FROM Employee;
+2 Total salary paid by the company
+SELECT SUM(Salary) AS TotalSalary FROM Employee;
+3 Average salary of employees
+SELECT AVG(Salary) AS AverageSalary FROM Employee;
+4 Highest and lowest salary
+SELECT MAX(Salary) AS HighestSalary, MIN(Salary) AS LowestSalary FROM Employee;
+5 Number of employees in each department (GROUP BY)
+SELECT Department, COUNT(*) AS EmpCount
+FROM Employee
+GROUP BY Department;
+6 Average salary department-wise
+SELECT Department, AVG(Salary) AS AvgSalary
+FROM Employee
+GROUP BY Department
+ORDER BY AvgSalary DESC;
+7 Departments with more than 3 employees (HAVING)
+SELECT Department, COUNT(*) AS EmpCount
+FROM Employee
+GROUP BY Department
+HAVING COUNT(*) > 3;.
+
+8 Departments where average salary exceeds 50000
+SELECT Department, AVG(Salary) AS AvgSalary
+FROM Employee
+GROUP BY Department
+HAVING AVG(Salary) > 50000;
+9 Combining WHERE, GROUP BY and HAVING
+SELECT Department, City, COUNT(*) AS EmpCount
+FROM Employee
+WHERE Salary > 40000
+GROUP BY Department, City
+HAVING COUNT(*) >= 2
+ORDER BY Department;
+
+10 City-wise total salary expenditure (only cities spending above 1,00,000)
+SELECT City, SUM(Salary) AS TotalSalary
+FROM Employee
+GROUP BY City
+HAVING SUM(Salary) > 100000;
+Output:
+EmpID	Name	Department	Salary
+101	Arun	HR	35000
+102	Priya	IT	48000
+103	Kavin	Finance	50000
+104	Divya	IT	55000
+
+
+Result
+Thus, DCL and TCL commands such as GRANT, REVOKE, COMMIT, ROLLBACK and SAVEPOINT were practiced successfully. User privileges were managed, and database transactions were performed and verified.
