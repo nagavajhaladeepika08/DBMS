@@ -1,0 +1,318 @@
+ Normalization in Oracle (1NF, 2NF, 3NF, 4NF, 5NF) using Functional Dependencies
+
+AIM
+To study and implement the concept of Normalization (1NF, 2NF, 3NF, 4NF, 5NF) using Functional Dependencies, and to design and create normalized tables in Oracle using SQL.
+
+1. THEORY
+1.1 What is Normalization?
+Normalization is the process of organizing data in a database to reduce data redundancy and avoid undesirable characteristics like Insertion, Update, and Deletion anomalies. It involves decomposing a large table into smaller, well-structured tables based on Functional Dependencies (FDs), and defining relationships between them.
+1.2 Functional Dependency (FD)
+A functional dependency X → Y (read as "X determines Y") means: for every value of attribute X, there is exactly one corresponding value of attribute Y. X is called the determinant, Y is the dependent.
+Types of FD-related concepts used in normalization:
+Term	Meaning
+Prime Attribute	An attribute that is part of any candidate key
+Non-Prime Attribute	An attribute that is not part of any candidate key
+Full Functional Dependency	Y depends on the whole of composite key X, not a subset
+Partial Dependency	Y depends on only part of a composite key
+Transitive Dependency	X → Y and Y → Z implies X → Z (Z depends on X indirectly through Y)
+Multivalued Dependency (MVD)	X →→ Y : for a given X, there is a set of values of Y, independent of other attributes
+Join Dependency (JD)	A table can be reconstructed by joining multiple decomposed tables without loss of information
+1.3 Normal Forms Summary
+Normal Form	Rule	Removes
+1NF	Atomic values only; no repeating groups/multivalued columns	Multivalued attributes
+2NF	1NF + no partial dependency (applies when PK is composite)	Partial dependency
+3NF	2NF + no transitive dependency	Transitive dependency
+BCNF	3NF + every determinant is a candidate key	Anomalies from overlapping candidate keys
+4NF	BCNF + no multivalued dependency	Multivalued dependency
+5NF (PJNF)	4NF + no join dependency (lossless decomposition only)	Join dependency
+
+2. UNNORMALIZED TABLE (UNF) — The Starting Point
+Consider a college database storing student course enrollment details in a single flat table.
+StudentCourse (Unnormalized)
+SID	SName	Courses	Faculty	FacultyPhone	Dept	HOD
+S1	Arun	DBMS, OS	Ravi, Meena	9990001, 9990002	CSE	Dr. Sharma
+S2	Bala	DBMS	Ravi	9990001	CSE	Dr. Sharma
+Problem: The Courses, Faculty, and FacultyPhone columns hold multiple (multivalued) values in a single cell → violates 1NF.
+Functional Dependencies identified:
+SID        → SName
+SID, Course → Faculty
+Faculty    → FacultyPhone, Dept
+Dept       → HOD
+
+3. FIRST NORMAL FORM (1NF)
+Rule
+Every attribute must contain a single atomic value; no repeating groups or multivalued/composite columns.
+Step: Remove multivalued columns → create one row per (SID, Course)
+StudentCourse_1NF
+SID	SName	Course	Faculty	FacultyPhone	Dept	HOD
+S1	Arun	DBMS	Ravi	9990001	CSE	Dr. Sharma
+S1	Arun	OS	Meena	9990002	CSE	Dr. Sharma
+S2	Bala	DBMS	Ravi	9990001	CSE	Dr. Sharma
+Oracle SQL Implementation
+sql
+-- Table is now in 1NF: every cell holds a single atomic value
+CREATE TABLE StudentCourse_1NF (
+    SID           VARCHAR2(10),
+    SName         VARCHAR2(30),
+    Course        VARCHAR2(20),
+    Faculty       VARCHAR2(30),
+    FacultyPhone  VARCHAR2(15),
+    Dept          VARCHAR2(10),
+    HOD           VARCHAR2(30),
+    CONSTRAINT pk_1nf PRIMARY KEY (SID, Course)
+);
+
+INSERT INTO StudentCourse_1NF VALUES ('S1','Arun','DBMS','Ravi','9990001','CSE','Dr. Sharma');
+INSERT INTO StudentCourse_1NF VALUES ('S1','Arun','OS','Meena','9990002','CSE','Dr. Sharma');
+INSERT INTO StudentCourse_1NF VALUES ('S2','Bala','DBMS','Ravi','9990001','CSE','Dr. Sharma');
+
+COMMIT;
+
+SELECT * FROM StudentCourse_1NF;
+Still has problems: Composite key is (SID, Course). SName depends only on SID (part of the key) → partial dependency → violates 2NF.
+
+4. SECOND NORMAL FORM (2NF)
+Rule
+Must be in 1NF and every non-prime attribute must be fully functionally dependent on the entire primary key (no partial dependency). Applies only when the PK is composite.
+Functional Dependencies re-examined
+SID              → SName                     (partial - depends only on SID)
+SID, Course      → Faculty, FacultyPhone,
+                    Dept, HOD                 (full - needs both SID & Course... 
+                                                actually Faculty depends on Course too)
+Course           → Faculty                    (partial - depends only on Course)
+Faculty          → FacultyPhone, Dept
+Dept             → HOD
+Decomposition — split into 3 tables
+Student
+SID (PK)	SName
+S1	Arun
+S2	Bala
+Course_Faculty
+Course (PK)	Faculty	FacultyPhone	Dept	HOD
+DBMS	Ravi	9990001	CSE	Dr. Sharma
+OS	Meena	9990002	CSE	Dr. Sharma
+Enrollment (bridge table)
+SID (FK)	Course (FK)
+S1	DBMS
+S1	OS
+S2	DBMS
+Oracle SQL Implementation
+sql
+CREATE TABLE Student (
+    SID    VARCHAR2(10) PRIMARY KEY,
+    SName  VARCHAR2(30)
+);
+
+CREATE TABLE Course_Faculty (
+    Course        VARCHAR2(20) PRIMARY KEY,
+    Faculty       VARCHAR2(30),
+    FacultyPhone  VARCHAR2(15),
+    Dept          VARCHAR2(10),
+    HOD           VARCHAR2(30)
+);
+
+CREATE TABLE Enrollment (
+    SID     VARCHAR2(10),
+    Course  VARCHAR2(20),
+    PRIMARY KEY (SID, Course),
+    FOREIGN KEY (SID) REFERENCES Student(SID),
+    FOREIGN KEY (Course) REFERENCES Course_Faculty(Course)
+);
+
+INSERT INTO Student VALUES ('S1','Arun');
+INSERT INTO Student VALUES ('S2','Bala');
+
+INSERT INTO Course_Faculty VALUES ('DBMS','Ravi','9990001','CSE','Dr. Sharma');
+INSERT INTO Course_Faculty VALUES ('OS','Meena','9990002','CSE','Dr. Sharma');
+
+INSERT INTO Enrollment VALUES ('S1','DBMS');
+INSERT INTO Enrollment VALUES ('S1','OS');
+INSERT INTO Enrollment VALUES ('S2','DBMS');
+
+COMMIT;
+Still has problems: In Course_Faculty: Course → Faculty → FacultyPhone, Dept and Dept → HOD. So Course → Dept → HOD is a transitive dependency → violates 3NF.
+
+5. THIRD NORMAL FORM (3NF)
+Rule
+Must be in 2NF and no non-prime attribute is transitively dependent on the primary key (no non-key attribute determines another non-key attribute).
+Decompose Course_Faculty further
+Course_Faculty_3NF
+Course (PK)	Faculty (FK)
+DBMS	Ravi
+OS	Meena
+Faculty_Dept
+Faculty (PK)	FacultyPhone	Dept (FK)
+Ravi	9990001	CSE
+Meena	9990002	CSE
+Department
+Dept (PK)	HOD
+CSE	Dr. Sharma
+Oracle SQL Implementation
+sql
+CREATE TABLE Department (
+    Dept  VARCHAR2(10) PRIMARY KEY,
+    HOD   VARCHAR2(30)
+);
+
+CREATE TABLE Faculty_Dept (
+    Faculty       VARCHAR2(30) PRIMARY KEY,
+    FacultyPhone  VARCHAR2(15),
+    Dept          VARCHAR2(10),
+    FOREIGN KEY (Dept) REFERENCES Department(Dept)
+);
+
+CREATE TABLE Course_3NF (
+    Course   VARCHAR2(20) PRIMARY KEY,
+    Faculty  VARCHAR2(30),
+    FOREIGN KEY (Faculty) REFERENCES Faculty_Dept(Faculty)
+);
+
+INSERT INTO Department VALUES ('CSE','Dr. Sharma');
+
+INSERT INTO Faculty_Dept VALUES ('Ravi','9990001','CSE');
+INSERT INTO Faculty_Dept VALUES ('Meena','9990002','CSE');
+
+INSERT INTO Course_3NF VALUES ('DBMS','Ravi');
+INSERT INTO Course_3NF VALUES ('OS','Meena');
+
+COMMIT;
+
+-- Verify with a join
+SELECT c.Course, f.Faculty, f.FacultyPhone, f.Dept, d.HOD
+FROM Course_3NF c
+JOIN Faculty_Dept f ON c.Faculty = f.Faculty
+JOIN Department d ON f.Dept = d.Dept;
+At this point the schema is in 3NF (and also satisfies BCNF here, since every determinant — Course, Faculty, Dept — is a candidate/primary key of its own table).
+
+6. FOURTH NORMAL FORM (4NF)
+Rule
+Must be in BCNF and have no multivalued dependency (MVD) — i.e., no row has two or more independent multivalued facts about the same entity stored together.
+Example scenario
+Suppose a Faculty member can teach multiple Courses and also knows multiple Languages, and these two facts are independent of each other.
+Faculty_Skills (violates 4NF)
+Faculty	Course	Language
+Ravi	DBMS	English
+Ravi	DBMS	Hindi
+Ravi	OS	English
+Ravi	OS	Hindi
+Here Faculty →→ Course and Faculty →→ Language are two independent MVDs mixed in one table, causing redundancy (every Course is paired with every Language).
+Decomposition into two independent tables
+Faculty_Course
+Faculty	Course
+Ravi	DBMS
+Ravi	OS
+Faculty_Language
+Faculty	Language
+Ravi	English
+Ravi	Hindi
+Oracle SQL Implementation
+sql
+CREATE TABLE Faculty_Course (
+    Faculty  VARCHAR2(30),
+    Course   VARCHAR2(20),
+    PRIMARY KEY (Faculty, Course)
+);
+
+CREATE TABLE Faculty_Language (
+    Faculty   VARCHAR2(30),
+    Language  VARCHAR2(20),
+    PRIMARY KEY (Faculty, Language)
+);
+
+INSERT INTO Faculty_Course VALUES ('Ravi','DBMS');
+INSERT INTO Faculty_Course VALUES ('Ravi','OS');
+
+INSERT INTO Faculty_Language VALUES ('Ravi','English');
+INSERT INTO Faculty_Language VALUES ('Ravi','Hindi');
+
+COMMIT;
+Now each table stores exactly one independent multivalued fact → satisfies 4NF.
+
+7. FIFTH NORMAL FORM (5NF) / PROJECT-JOIN NORMAL FORM (PJNF)
+Rule
+Must be in 4NF and contain no join dependency that is not implied by the candidate keys — meaning the table cannot be further decomposed into smaller tables without losing information (it must be reconstructable by joining the decomposed parts with no spurious rows).
+Example scenario
+Suppose a table records which Faculty teaches which Course, using which Textbook — but not every combination is valid; the relationship is a genuine three-way constraint (a Faculty teaches a Course only using specific Textbooks, and this cannot be derived from just two pairwise tables).
+Faculty_Course_Book (violates 5NF)
+Faculty	Course	Textbook
+Ravi	DBMS	Korth
+Ravi	DBMS	Navathe
+Meena	OS	Silberschatz
+If we decompose this into only two pairwise tables (Faculty-Course and Course-Textbook), rejoining them may generate spurious/incorrect combinations that never existed in the original data. This is only correctly decomposable using all three projections.
+Decomposition into three tables (lossless join)
+Faculty_Course
+Faculty	Course
+Ravi	DBMS
+Meena	OS
+Course_Textbook
+Course	Textbook
+DBMS	Korth
+DBMS	Navathe
+OS	Silberschatz
+Faculty_Textbook
+Faculty	Textbook
+Ravi	Korth
+Ravi	Navathe
+Meena	Silberschatz
+Oracle SQL Implementation
+sql
+CREATE TABLE Faculty_Course_5NF (
+    Faculty  VARCHAR2(30),
+    Course   VARCHAR2(20),
+    PRIMARY KEY (Faculty, Course)
+);
+
+CREATE TABLE Course_Textbook_5NF (
+    Course     VARCHAR2(20),
+    Textbook   VARCHAR2(30),
+    PRIMARY KEY (Course, Textbook)
+);
+
+CREATE TABLE Faculty_Textbook_5NF (
+    Faculty    VARCHAR2(30),
+    Textbook   VARCHAR2(30),
+    PRIMARY KEY (Faculty, Textbook)
+);
+
+INSERT INTO Faculty_Course_5NF VALUES ('Ravi','DBMS');
+INSERT INTO Faculty_Course_5NF VALUES ('Meena','OS');
+
+INSERT INTO Course_Textbook_5NF VALUES ('DBMS','Korth');
+INSERT INTO Course_Textbook_5NF VALUES ('DBMS','Navathe');
+INSERT INTO Course_Textbook_5NF VALUES ('OS','Silberschatz');
+
+INSERT INTO Faculty_Textbook_5NF VALUES ('Ravi','Korth');
+INSERT INTO Faculty_Textbook_5NF VALUES ('Ravi','Navathe');
+INSERT INTO Faculty_Textbook_5NF VALUES ('Meena','Silberschatz');
+
+COMMIT;
+
+-- Reconstruct the original relation via a 3-way natural join (lossless join test)
+SELECT fc.Faculty, fc.Course, ct.Textbook
+FROM Faculty_Course_5NF fc
+JOIN Course_Textbook_5NF ct ON fc.Course = ct.Course
+JOIN Faculty_Textbook_5NF ft ON fc.Faculty = ft.Faculty AND ct.Textbook = ft.Textbook;
+The table is now in 5NF — it cannot be decomposed further without loss of information, and rejoining the three tables reproduces exactly the original valid combinations.
+
+8. VERIFYING NORMALIZATION IN ORACLE (Useful Commands)
+sql
+-- View all tables created in this schema
+SELECT table_name FROM user_tables;
+
+-- View column structure of a table
+DESC Faculty_Dept;
+
+-- View primary key / foreign key constraints
+SELECT constraint_name, constraint_type, table_name
+FROM user_constraints
+WHERE table_name IN ('STUDENT','COURSE_3NF','FACULTY_DEPT','DEPARTMENT');
+
+-- View functional-dependency-driven referential integrity
+SELECT a.table_name, a.column_name, c.constraint_type
+FROM user_cons_columns a
+JOIN user_constraints c ON a.constraint_name = c.constraint_name
+WHERE c.constraint_type IN ('P','R')
+ORDER BY a.table_name;
+
+9. RESULT
+Thus, the given unnormalized relation was successfully decomposed into 1NF, 2NF, 3NF, 4NF, and 5NF using functional dependency analysis, and the corresponding normalized tables were created, populated, and verified in Oracle.
